@@ -48,10 +48,10 @@ RM = /usr/local/Cellar/cmake/3.10.2/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project
+CMAKE_SOURCE_DIR = /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project-Submit
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project/build
+CMAKE_BINARY_DIR = /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project-Submit/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project/build/CMakeFiles /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project/build/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project-Submit/build/CMakeFiles /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project-Submit/build/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/hassan/SelfDrivingCar/Term2/CarND-Kidnapped-Vehicle-Project-Submit/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
