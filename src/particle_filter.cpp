@@ -33,13 +33,11 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	normal_distribution<double> dist_x(x, std[0]);
 	normal_distribution<double> dist_y(y, std[1]);
 	normal_distribution<double> dist_theta(theta, std[2]);
+	default_random_engine gen_x;
+	default_random_engine gen_y;
+	default_random_engine gen_theta;
 
 	for (unsigned int i = 0; i < num_particles; i++){
-		// TODO : Check we need separate random value for all of the state variables
-		default_random_engine gen_x;
-		default_random_engine gen_y;
-		default_random_engine gen_theta;
-
 		Particle_t.id = i;
 		Particle_t.x = dist_x(gen_x);
 		Particle_t.y = dist_y(gen_y);
@@ -47,6 +45,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 		Particle_t.weight = 1.0;
 		particles.push_back(Particle_t);
 		weights.push_back(1.0);
+		cout<< "Particle_t.x " << Particle_t.x << endl;
+		cout<< "Particle_t.y " << Particle_t.y << endl;
+		cout<< "Particle_t.theta " << Particle_t.theta << endl;
 	}
 	cout<< "Total No of intialized samples" << particles.size() << endl;
 	is_initialized = true;
@@ -110,10 +111,14 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//calculate normalization term
 	double gauss_norm= (1/(2 * M_PI * sig_x * sig_y));
 
+	double x_p, y_p, theta, x_lm,y_lm , x_c, y_c ,x_m, y_m;
+	int id_i;
+	double mu_x, mu_y, exponent, P_m;
+
 	for (unsigned int i = 0; i < num_particles; i++){
 		//Transforming the Vehicle Coordinate system observation to map coordinate system
 		x_p = particles[i].x; //x position of particle in map coordinate
-		y_p = particles[i].x; //y position of particle in map coordinate
+		y_p = particles[i].y; //y position of particle in map coordinate
 		theta = particles[i].theta;
 
 		// loop to find landmarks which can be covered by the particle current position and it's Range
@@ -123,7 +128,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			y_lm = map_landmarks.landmark_list[j].y_f;
 			//calcucate the euclidian distance and check with the range
 			if (sqrt((x_lm-x_p)*(x_lm-x_p) + (y_lm-y_p)*(y_lm-y_p)) < sensor_range){
-				particles.push_back(j);
+				landmarks_ids.push_back(j);
 			}
 		}
 
@@ -143,12 +148,12 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			y_m= y_p + (sin(theta) * x_c) + (cos(theta) * y_c);
 
 			//Finding the landmark which the predicted observation corresponds to
-			double min_dist = 100000000;
+			double min_dist = 1e100;
 			int min_idx = 0;
 			for (unsigned int k = 0; k < landmarks_ids.size(); k++){
 				x_lm = map_landmarks.landmark_list[landmarks_ids[k]].x_f;
 				y_lm = map_landmarks.landmark_list[landmarks_ids[k]].y_f;
-				//calcucate the euclidian distance and check with the range
+				//calcucate the euclidian distance
 				double min_dist_t = sqrt((x_lm-x_m)*(x_lm-x_m) + (y_lm-y_m)*(y_lm-y_m));
 				if (min_dist_t < min_dist){
 					min_idx = k;
@@ -166,14 +171,34 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 			//calculate the probability for calculating weights
 			// calculate exponent
-			exponent= (pow((x_obs - mu_x),2))/(2 * pow(sig_x,2)) + (pow((y_obs - mu_y),2))/(2 * pow(sig_y,2))
+			exponent= (pow((x_m - mu_x),2))/(2 * pow(sig_x,2)) + (pow((y_m - mu_y),2))/(2 * pow(sig_y,2));
 			// calculate weight using normalization terms and exponent
 			P_m= gauss_norm * exp(-exponent);
-			particles[i].weight = particles[i].weight*P_m;
+			weights[i] = weights[i]*P_m;
 		}
-		particles[i] = ParticleFilter::SetAssociations(particles[i],associations,sense_x,sense_y);
+		particles[i] = SetAssociations(particles[i],associations,sense_x,sense_y);
+		particles[i].weight = weights[i];
 	}
-	//TODO Do we need to normalize the weight of all particles
+
+	int N = num_particles;
+	//Find the weight sum for normalization and find the maxmimum weight
+	double sum_w = 0.0;
+	double max_w = 0.0;
+	for (unsigned int i = 0; i < N; i++){
+		sum_w += weights[i];
+		if (max_w < weights[i]){
+			max_w = weights[i];
+		}
+	}
+	cout << "Debug : Sum of Weight" << sum_w << endl;
+	cout << "Debug : Max Weight" << max_w << endl;
+
+	//loop for normalization
+	for (unsigned int i = 0; i < N; i++){
+		weights[i] = weights[i]/sum_w;
+		particles[i].weight = weights[i];
+		cout << "Debug : normalized weight " << weights[i] << endl;
+	}
 
 }
 
@@ -181,6 +206,27 @@ void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight.
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+
+	int N = num_particles;
+	default_random_engine gen;
+
+	// some temporary vectors
+	std::vector<Particle> particles_upd;
+	std::vector<double> weights_upd;
+
+	discrete_distribution<double> dist_rand (weights.begin(), weights.end());
+
+	//loop for resampling
+	for (unsigned int i = 0; i < N; i++){
+		int index = dist_rand(gen);
+		cout << "Debug : Index Resamples " << index << endl;
+    particles_upd.push_back(particles[index]);
+		weights_upd.push_back(1.0); //new weight assign to 1.0
+	}
+	// TODO Check this works or have to do copy
+	weights = weights_upd;
+	particles = particles_upd;
+
 
 }
 
@@ -191,10 +237,11 @@ Particle ParticleFilter::SetAssociations(Particle& particle, const std::vector<i
     // associations: The landmark id that goes along with each listed association
     // sense_x: the associations x mapping already converted to world coordinates
     // sense_y: the associations y mapping already converted to world coordinates
-
     particle.associations= associations;
     particle.sense_x = sense_x;
     particle.sense_y = sense_y;
+		return particle;
+
 }
 
 string ParticleFilter::getAssociations(Particle best)
