@@ -25,7 +25,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-	num_particles = 100; //TODO need to be changed
+	num_particles = 200;
 
 	Particle Particle_t;
 
@@ -33,24 +33,18 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	normal_distribution<double> dist_x(x, std[0]);
 	normal_distribution<double> dist_y(y, std[1]);
 	normal_distribution<double> dist_theta(theta, std[2]);
-	//default random generator for each distribution
-	default_random_engine gen_x;
-	default_random_engine gen_y;
-	default_random_engine gen_theta;
-
+	//default random generator
+	default_random_engine gen;
+	//Initialize all particles
 	for (unsigned int i = 0; i < num_particles; i++){
 		Particle_t.id = i;
-		Particle_t.x = dist_x(gen_x);
-		Particle_t.y = dist_y(gen_x);
-		Particle_t.theta = dist_theta(gen_x);
+		Particle_t.x = dist_x(gen);
+		Particle_t.y = dist_y(gen);
+		Particle_t.theta = dist_theta(gen);
 		Particle_t.weight = 1.0;
 		particles.push_back(Particle_t);
 		weights.push_back(1.0);
-		cout<< "Particle_t.x " << Particle_t.x << endl;
-		cout<< "Particle_t.y " << Particle_t.y << endl;
-		cout<< "Particle_t.theta " << Particle_t.theta << endl;
 	}
-	cout<< "Total No of intialized samples" << particles.size() << endl;
 	is_initialized = true;
 }
 
@@ -70,9 +64,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   double y_pred;
   double theta_pred;
 
-
+	// include the new control information
 	for (unsigned int i = 0; i < num_particles; i++){
-
 		// if yaw rate not equal to zero
 		if (abs(yaw_rate) > 1e-5){
 			x_pred = particles[i].x + (velocity/yaw_rate) * (sin(particles[i].theta + yaw_rate*delta_t) - sin(particles[i].theta));
@@ -120,7 +113,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	double sig_y = std_landmark[1];
 	//calculate normalization term
 	double gauss_norm= (1/(2 * M_PI * sig_x * sig_y));
-
+	//some more initialization used later
 	double x_p, y_p, theta, x_lm,y_lm , x_c, y_c ,x_m, y_m;
 	int id_i;
 	double mu_x, mu_y, exponent, P_m;
@@ -139,12 +132,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			y_lm = map_landmarks.landmark_list[j].y_f;
 			//calcucate the euclidian distance and check with the range
 			if (sqrt((x_lm-x_p)*(x_lm-x_p) + (y_lm-y_p)*(y_lm-y_p)) < sensor_range){
-			//if (1){ //TODO Change this afterwards
 				landmarks_ids.push_back(j);
 			}
 		}
 		//cout << "No of landmarks = " << landmarks_ids.size() << " vs No of observations = " << observations.size()  << endl;
-
 
 		std::vector<int> associations;
 		std::vector<double> sense_x;
